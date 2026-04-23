@@ -24,10 +24,6 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      [
-        "expo-iap",
-        {}
-      ],
       "expo-font"
     ],
     "experiments": {
@@ -37,7 +33,8 @@
       "router": {},
       "eas": {
         "projectId": "6a4624dd-2074-4e63-b835-f8ecce0cb208"
-      }
+      },
+      "revenueCatIosKey": "appl_cbphhGffSpkWlYFkUIBddRttqOl"
     }
   }
 }

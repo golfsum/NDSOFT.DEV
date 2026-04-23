@@ -10,6 +10,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -20,6 +21,7 @@ import type { AscApiError } from '@/api/asc-client';
 import { restorePurchases } from '@/iap/storekit';
 import { useCredentialsStore, type Credentials } from '@/store/credentials';
 import { useEntitlement } from '@/hooks/useEntitlement';
+import { useEntitlementStore } from '@/store/entitlement';
 import { theme } from '@/theme';
 import { looksLikeP8, normalizeP8 } from '@/utils/pem';
 
@@ -192,6 +194,8 @@ export default function SettingsScreen() {
             <Text style={styles.linkText}>Restore Purchases</Text>
           </Pressable>
 
+          {__DEV__ ? <DevPanel /> : null}
+
           <Text style={styles.section}>About</Text>
           <Row label="Version" value={Constants.expoConfig?.version ?? '1.0.0'} />
           <Row
@@ -236,6 +240,37 @@ function Field({
         smartInsertDelete={false}
       />
     </View>
+  );
+}
+
+function DevPanel() {
+  const unlocked = useEntitlementStore((s) => s.unlocked);
+  const setUnlocked = useEntitlementStore((s) => s.setUnlocked);
+
+  return (
+    <>
+      <Text style={styles.section}>Developer</Text>
+      <View style={styles.devBox}>
+        <View style={styles.devRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.devTitle}>Force Pro unlock</Text>
+            <Text style={styles.devSubtitle}>
+              Local override. Next RevenueCat sync will overwrite this based on
+              the real entitlement.
+            </Text>
+          </View>
+          <Switch
+            value={unlocked}
+            onValueChange={(v) => setUnlocked(v)}
+            trackColor={{ true: theme.color.accent, false: '#3A3A46' }}
+          />
+        </View>
+      </View>
+      <Text style={styles.devHint}>
+        Visible in debug builds only. Sandbox testers and StoreKit config files
+        are still the real path for verifying purchases.
+      </Text>
+    </>
   );
 }
 
@@ -302,6 +337,36 @@ function LinkRow({ label, url }: { label: string; url: string }) {
 }
 
 const styles = StyleSheet.create({
+  devBox: {
+    marginTop: theme.space.sm,
+    padding: theme.space.md,
+    backgroundColor: theme.color.card,
+    borderRadius: theme.radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.color.border,
+  },
+  devRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.space.md,
+  },
+  devTitle: {
+    color: theme.color.text,
+    fontSize: theme.font.md,
+    fontWeight: '600',
+  },
+  devSubtitle: {
+    color: theme.color.textDim,
+    fontSize: theme.font.sm,
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  devHint: {
+    color: theme.color.textDim,
+    fontSize: 11,
+    marginTop: theme.space.sm,
+    paddingHorizontal: 2,
+  },
   safe: { flex: 1, backgroundColor: theme.color.bg },
   content: { padding: theme.space.lg, paddingBottom: theme.space.xl * 2 },
   section: {

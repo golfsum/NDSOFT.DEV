@@ -1,133 +1,128 @@
+/**
+ * BuildPad's IAP layer, powered by RevenueCat.
+ *
+ * RevenueCat is the source of truth for the "Pro" entitlement. The
+ * local Zustand entitlement store is kept in sync from
+ * `customerInfoUpdateListener` so UI renders synchronously, but any
+ * authoritative question ("is this user actually unlocked?") is
+ * answered by RC.
+ *
+ * File name is kept as `storekit.ts` so existing imports don't break.
+ */
+import Constants from 'expo-constants';
 import { useEntitlementStore } from '../store/entitlement';
 
-export type PlanTier = 'monthly' | 'yearly' | 'lifetime';
-
-export const PRODUCT_IDS: Record<PlanTier, string> = {
-  monthly: 'com.ndsoft.testflighttracker.pro.monthly',
-  yearly: 'com.ndsoft.testflighttracker.pro.yearly',
-  lifetime: 'com.ndsoft.testflighttracker.pro.lifetime',
-};
-
-/** Legacy one-time unlock — still honored on restore for early users. */
-const LEGACY_UNLIMITED_ID = 'com.ndsoft.testflighttracker.unlimited';
-
-const ALL_PRODUCT_IDS: string[] = [
-  PRODUCT_IDS.monthly,
-  PRODUCT_IDS.yearly,
-  PRODUCT_IDS.lifetime,
-  LEGACY_UNLIMITED_ID,
-];
-
-const SUBSCRIPTION_IDS = new Set<string>([
-  PRODUCT_IDS.monthly,
-  PRODUCT_IDS.yearly,
-]);
-
-export interface ProductInfo {
-  id: string;
-  tier: PlanTier;
-  priceLabel: string; // e.g. "$2.99" — from StoreKit
-  title: string;
-  description: string;
-  /** True for auto-renewing subscriptions; false for the one-time lifetime. */
-  isSubscription: boolean;
-}
-
-/**
- * Load expo-iap lazily. The module throws at import time when its
- * native counterpart is missing (e.g. running a JS bundle against a
- * dev client that wasn't rebuilt after adding the package). Swallowing
- * the error here lets the rest of the app render — paywall actions
- * will simply report that purchases are unavailable.
- */
+// Lazy-require RevenueCat so that a JS bundle running against a dev
+// binary without the native module doesn't crash the whole app. When
+// absent, every call gracefully no-ops.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let iap: any = null;
+let Purchases: any = null;
+let PurchasesErrorModule: unknown = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  iap = require('expo-iap');
+  const mod = require('react-native-purchases');
+  Purchases = mod.default ?? mod;
+  PurchasesErrorModule = mod;
 } catch (e) {
   const msg = e instanceof Error ? e.message : String(e);
   console.warn(
-    '[storekit] expo-iap native module not available — in-app purchases disabled. ' +
-      'Rebuild the native app (`npx expo run:ios`) to enable. Detail:',
+    '[storekit] react-native-purchases unavailable — rebuild the app (`npx expo run:ios`) to enable purchases. Detail:',
     msg,
   );
 }
 
+// -- Public types (stable across the expo-iap → RevenueCat swap) -----------
+
+export type PlanTier = 'monthly' | 'yearly' | 'lifetime';
+
+export interface ProductInfo {
+  id: string;
+  tier: PlanTier;
+  priceLabel: string;
+  title: string;
+  description: string;
+  isSubscription: boolean;
+}
+
+/** Entitlement identifier — must match what you configure in RC dashboard. */
+export const PRO_ENTITLEMENT = 'Pro';
+
+// -- Internals -------------------------------------------------------------
+
+let configured = false;
+let configuring: Promise<void> | null = null;
+
+function apiKey(): string | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, any>;
+  const key = extra.revenueCatIosKey;
+  return typeof key === 'string' && key.length > 0 ? key : null;
+}
+
 export function isIapAvailable(): boolean {
-  return iap != null;
+  return Purchases != null && apiKey() != null;
 }
 
-async function ensureConnection(): Promise<void> {
-  if (!iap) return;
-  if (typeof iap.initConnection === 'function') {
-    try {
-      await iap.initConnection();
-    } catch {
-      /* swallow */
-    }
+async function configurePurchases(): Promise<void> {
+  if (configured) return;
+  if (configuring) return configuring;
+  if (!Purchases) return;
+  const key = apiKey();
+  if (!key) {
+    console.warn('[storekit] no RevenueCat iOS API key found in app.json extra.revenueCatIosKey');
+    return;
   }
+
+  configuring = (async () => {
+    try {
+      if (typeof Purchases.setLogLevel === 'function' && Purchases.LOG_LEVEL) {
+        Purchases.setLogLevel(
+          __DEV__ ? Purchases.LOG_LEVEL.DEBUG : Purchases.LOG_LEVEL.WARN,
+        );
+      }
+      await Purchases.configure({ apiKey: key });
+      configured = true;
+    } catch (e) {
+      console.warn('[storekit] Purchases.configure failed:', e);
+    } finally {
+      configuring = null;
+    }
+  })();
+
+  return configuring;
 }
 
-function tierForId(id: string): PlanTier | null {
-  if (id === PRODUCT_IDS.monthly) return 'monthly';
-  if (id === PRODUCT_IDS.yearly) return 'yearly';
-  if (id === PRODUCT_IDS.lifetime) return 'lifetime';
-  if (id === LEGACY_UNLIMITED_ID) return 'lifetime';
+function tierForPackage(pkg: {
+  identifier?: string;
+  product?: { identifier?: string };
+}): PlanTier | null {
+  // Prefer RevenueCat's standard package identifiers when present.
+  const id = pkg.identifier ?? '';
+  if (id === '$rc_monthly') return 'monthly';
+  if (id === '$rc_annual') return 'yearly';
+  if (id === '$rc_lifetime') return 'lifetime';
+
+  // Fall back to sniffing the product identifier string.
+  const prod = (pkg.product?.identifier ?? '').toLowerCase();
+  if (prod.includes('lifetime')) return 'lifetime';
+  if (prod.includes('annual') || prod.includes('yearly')) return 'yearly';
+  if (prod.includes('monthly')) return 'monthly';
   return null;
 }
 
-async function fetchSkus(skus: string[], type: 'inapp' | 'subs'): Promise<unknown[]> {
-  const fetcher = iap.fetchProducts ?? iap.getProducts ?? iap.requestProducts;
-  if (typeof fetcher !== 'function') return [];
-  try {
-    const products = await fetcher({ skus, type }).catch(() => fetcher(skus));
-    if (Array.isArray(products)) return products;
-    if (Array.isArray((products as { products?: unknown[] })?.products)) {
-      return (products as { products: unknown[] }).products;
-    }
-    return [];
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Fetch metadata for all three plans. Subscription products and
- * non-consumable products live under different ASC types, so we query
- * each type and merge the results.
- */
-export async function fetchAllProducts(): Promise<Record<PlanTier, ProductInfo | null>> {
-  const empty: Record<PlanTier, ProductInfo | null> = {
-    monthly: null,
-    yearly: null,
-    lifetime: null,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function pkgToProductInfo(pkg: any): ProductInfo | null {
+  const tier = tierForPackage(pkg);
+  if (!tier) return null;
+  const product = pkg.product ?? {};
+  return {
+    id: product.identifier ?? pkg.identifier ?? '',
+    tier,
+    priceLabel: product.priceString ?? '',
+    title: product.title ?? defaultTitle(tier),
+    description: product.description ?? '',
+    isSubscription: tier !== 'lifetime',
   };
-  if (!iap) return empty;
-  await ensureConnection();
-
-  const [subs, inapp] = await Promise.all([
-    fetchSkus([PRODUCT_IDS.monthly, PRODUCT_IDS.yearly], 'subs'),
-    fetchSkus([PRODUCT_IDS.lifetime], 'inapp'),
-  ]);
-
-  const merged: Record<PlanTier, ProductInfo | null> = { ...empty };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const raw of [...subs, ...inapp] as any[]) {
-    const id: string | undefined = raw?.productId ?? raw?.id;
-    if (!id) continue;
-    const tier = tierForId(id);
-    if (!tier) continue;
-    merged[tier] = {
-      id,
-      tier,
-      priceLabel: raw.displayPrice ?? raw.localizedPrice ?? raw.price ?? '',
-      title: raw.title ?? defaultTitle(tier),
-      description: raw.description ?? '',
-      isSubscription: SUBSCRIPTION_IDS.has(id),
-    };
-  }
-  return merged;
 }
 
 function defaultTitle(tier: PlanTier): string {
@@ -136,126 +131,122 @@ function defaultTitle(tier: PlanTier): string {
   return 'Pro · Lifetime';
 }
 
-export async function purchasePlan(tier: PlanTier): Promise<boolean> {
-  if (!iap) {
-    throw new Error(
-      'In-app purchases are unavailable. Rebuild the app to enable purchases.',
-    );
-  }
-  await ensureConnection();
-
-  const purchaser =
-    iap.requestPurchase ?? iap.purchaseProduct ?? iap.buyProduct;
-  if (typeof purchaser !== 'function') {
-    throw new Error('In-app purchases are unavailable on this device.');
-  }
-
-  const sku = PRODUCT_IDS[tier];
-  const type: 'inapp' | 'subs' = SUBSCRIPTION_IDS.has(sku) ? 'subs' : 'inapp';
-
-  const modernArgs = {
-    request: {
-      ios: { sku },
-      android: { skus: [sku] },
-    },
-    type,
-  };
-  const legacyArgs = { sku, skus: [sku] };
-
-  let result: unknown;
-  try {
-    result = await purchaser(modernArgs);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (/request|ios|android|shape|invalid/i.test(msg)) {
-      result = await purchaser(legacyArgs);
-    } else {
-      throw e;
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const entries: any[] = Array.isArray(result) ? result : [result];
-  const success = entries.some(
-    (r) => r && (r.productId === sku || r.id === sku),
-  );
-
-  if (success) {
-    await useEntitlementStore.getState().setUnlocked(true);
-    await finalizePendingTransactions();
-  }
-  return success;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function setUnlockedFromCustomerInfo(info: any): void {
+  const active = info?.entitlements?.active ?? {};
+  const unlocked = Boolean(active[PRO_ENTITLEMENT]);
+  useEntitlementStore.getState().setUnlocked(unlocked);
 }
 
-/**
- * Check any current entitlement. A user is considered "unlocked" if
- * they hold any active subscription or the lifetime non-consumable,
- * or still have the legacy one-time unlock.
- */
-export async function restorePurchases(): Promise<boolean> {
-  if (!iap) return false;
-  await ensureConnection();
-  const getter = iap.getAvailablePurchases ?? iap.getPurchaseHistory;
-  if (typeof getter !== 'function') return false;
+// -- Public API ------------------------------------------------------------
+
+/** Called once at app launch. Safe to re-call. */
+export async function bootstrapIap(): Promise<void> {
+  await useEntitlementStore.getState().hydrate();
+  if (!Purchases) return;
+  await configurePurchases();
+  if (!configured) return;
+
+  // Sync local entitlement state from RC once, then keep it in sync.
+  try {
+    const info = await Purchases.getCustomerInfo();
+    setUnlockedFromCustomerInfo(info);
+  } catch (e) {
+    console.warn('[storekit] getCustomerInfo failed at bootstrap:', e);
+  }
+
+  if (typeof Purchases.addCustomerInfoUpdateListener === 'function') {
+    // Idempotent: RC dedupes listeners by reference, and this module is
+    // evaluated once so we attach at most one listener.
+    Purchases.addCustomerInfoUpdateListener(setUnlockedFromCustomerInfo);
+  }
+}
+
+export async function fetchAllProducts(): Promise<Record<PlanTier, ProductInfo | null>> {
+  const empty: Record<PlanTier, ProductInfo | null> = {
+    monthly: null,
+    yearly: null,
+    lifetime: null,
+  };
+  if (!Purchases) return empty;
+  if (!configured) await configurePurchases();
+  if (!configured) return empty;
 
   try {
-    const purchases = await getter();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const list: any[] = Array.isArray(purchases)
-      ? purchases
-      : purchases?.purchases ?? [];
-
-    const hasEntitlement = list.some((p) => {
-      const id: string | undefined = p?.productId ?? p?.id;
-      if (!id || !ALL_PRODUCT_IDS.includes(id)) return false;
-      // For subscriptions, trust expo-iap's reporting — expired ones
-      // don't typically come back from getAvailablePurchases on iOS.
-      // A belt-and-suspenders check for an expiresAt in the future:
-      const expires = p?.expirationDate ?? p?.expiresDate ?? null;
-      if (typeof expires === 'number' && expires < Date.now()) return false;
-      return true;
-    });
-
-    if (hasEntitlement) {
-      await useEntitlementStore.getState().setUnlocked(true);
+    const offerings = await Purchases.getOfferings();
+    const current = offerings?.current;
+    if (!current) return empty;
+    const out = { ...empty };
+    for (const pkg of current.availablePackages ?? []) {
+      const info = pkgToProductInfo(pkg);
+      if (info) out[info.tier] = info;
     }
-    await finalizePendingTransactions();
-    return hasEntitlement;
-  } catch {
+    return out;
+  } catch (e) {
+    console.warn('[storekit] getOfferings failed:', e);
+    return empty;
+  }
+}
+
+export class PurchaseError extends Error {
+  readonly userCancelled: boolean;
+  constructor(message: string, userCancelled = false) {
+    super(message);
+    this.name = 'PurchaseError';
+    this.userCancelled = userCancelled;
+  }
+}
+
+export async function purchasePlan(tier: PlanTier): Promise<boolean> {
+  if (!Purchases) {
+    throw new PurchaseError(
+      'In-app purchases are unavailable. Rebuild the app (`npx expo run:ios`) to enable.',
+    );
+  }
+  if (!configured) await configurePurchases();
+  if (!configured) {
+    throw new PurchaseError('RevenueCat is not configured. Check your API key.');
+  }
+
+  const offerings = await Purchases.getOfferings();
+  const current = offerings?.current;
+  if (!current) throw new PurchaseError('No offering is currently available.');
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pkg = (current.availablePackages ?? []).find((p: any) => tierForPackage(p) === tier);
+  if (!pkg) {
+    throw new PurchaseError(`The ${tier} plan is not available right now.`);
+  }
+
+  try {
+    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    setUnlockedFromCustomerInfo(customerInfo);
+    return Boolean(customerInfo?.entitlements?.active?.[PRO_ENTITLEMENT]);
+  } catch (e) {
+    // RC surfaces cancellation as a property on the thrown error.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const err = e as any;
+    if (err?.userCancelled === true) {
+      throw new PurchaseError('Purchase cancelled.', true);
+    }
+    const msg = err?.message ?? 'Purchase failed.';
+    throw new PurchaseError(msg, false);
+  }
+}
+
+export async function restorePurchases(): Promise<boolean> {
+  if (!Purchases) return false;
+  if (!configured) await configurePurchases();
+  if (!configured) return false;
+  try {
+    const info = await Purchases.restorePurchases();
+    setUnlockedFromCustomerInfo(info);
+    return Boolean(info?.entitlements?.active?.[PRO_ENTITLEMENT]);
+  } catch (e) {
+    console.warn('[storekit] restorePurchases failed:', e);
     return false;
   }
 }
 
-async function finalizePendingTransactions(): Promise<void> {
-  if (!iap) return;
-  try {
-    if (typeof iap.finishTransaction === 'function') {
-      const pending =
-        typeof iap.getPendingPurchases === 'function'
-          ? await iap.getPendingPurchases().catch(() => [])
-          : [];
-      for (const p of pending) {
-        try {
-          await iap.finishTransaction({ purchase: p, isConsumable: false });
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-}
-
-/**
- * Called once on app boot. Hydrates the entitlement from SecureStore,
- * then asks StoreKit whether the user still holds any entitlement.
- */
-export async function bootstrapIap(): Promise<void> {
-  await useEntitlementStore.getState().hydrate();
-  try {
-    await restorePurchases();
-  } catch {
-    /* ignore */
-  }
-}
+// Re-export for callers that may want to introspect error types directly.
+export { PurchasesErrorModule as _RawPurchasesModule };

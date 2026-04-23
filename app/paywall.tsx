@@ -5,6 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   fetchAllProducts,
+  PurchaseError,
   purchasePlan,
   restorePurchases,
   type PlanTier,
@@ -43,6 +44,8 @@ export default function PaywallScreen() {
       const ok = await purchasePlan(selected);
       if (ok) router.back();
     } catch (e) {
+      // User cancellation is not an error — treat silently.
+      if (e instanceof PurchaseError && e.userCancelled) return;
       const msg = e instanceof Error ? e.message : 'Purchase failed.';
       Alert.alert('Purchase', msg);
     } finally {
