@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { pingApps } from '@/api/endpoints/apps';
 import type { AscApiError } from '@/api/asc-client';
-import { purchaseUnlimited, restorePurchases } from '@/iap/storekit';
+import { restorePurchases } from '@/iap/storekit';
 import { useCredentialsStore, type Credentials } from '@/store/credentials';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import { theme } from '@/theme';
@@ -105,14 +105,8 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleUnlock = async () => {
-    try {
-      const ok = await purchaseUnlimited();
-      if (!ok) Alert.alert('Purchase', 'Purchase did not complete.');
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Purchase failed.';
-      Alert.alert('Purchase', msg);
-    }
+  const handleUnlock = () => {
+    router.push('/paywall');
   };
 
   const handleRestore = async () => {
@@ -188,7 +182,7 @@ export default function SettingsScreen() {
               <Text style={styles.unlockedText}>Unlimited Apps unlocked.</Text>
             </View>
           ) : (
-            <PrimaryButton label="Unlock Unlimited Apps" onPress={handleUnlock} solid />
+            <PrimaryButton label="Upgrade to BuildPad Pro" onPress={handleUnlock} solid />
           )}
           <Pressable
             onPress={handleRestore}

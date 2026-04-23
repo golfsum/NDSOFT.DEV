@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     'Terms of Service for ND Software LLC and its apps, including BuildPad.',
 };
 
-const EFFECTIVE_DATE = 'April 22, 2026';
+const EFFECTIVE_DATE = 'April 23, 2026';
 
 export default function TermsPage() {
   return (
@@ -53,20 +53,41 @@ export default function TermsPage() {
         such actions notwithstanding this restriction.
       </p>
 
-      <h2>2. Purchases</h2>
+      <h2>2. Purchases &amp; Subscriptions</h2>
       <p>
-        Some features of our Apps require a one-time in-app purchase. All
-        purchases are processed by Apple through the App Store and managed by
-        RevenueCat on our behalf. Pricing and availability are set in Apple
-        App Store Connect and may be shown in your local currency. By making
-        a purchase, you authorize Apple to charge the payment method on file
-        with your Apple ID.
+        Some features of our Apps require a paid plan. BuildPad offers three
+        plans: a <strong>monthly subscription</strong>, a{' '}
+        <strong>yearly subscription</strong>, and a{' '}
+        <strong>lifetime</strong> one-time purchase. All transactions are
+        processed by Apple through the App Store and managed by RevenueCat
+        on our behalf. Pricing and availability are set in App Store Connect
+        and may be shown in your local currency. By making a purchase, you
+        authorize Apple to charge the payment method on file with your
+        Apple ID.
       </p>
       <p>
-        <strong>No subscription.</strong> The paid unlock in BuildPad is a
-        one-time, non-consumable purchase. There is no recurring charge.
-        Your unlock is tied to your Apple ID and restores automatically on
-        devices signed in with that Apple ID.
+        <strong>Subscriptions (monthly and yearly).</strong> Monthly and
+        yearly plans are auto-renewing subscriptions. Payment is charged to
+        your Apple ID at confirmation of purchase, and your subscription
+        automatically renews for the same duration at the then-current price
+        unless auto-renewal is turned off at least 24 hours before the end of
+        the current period. You can manage or cancel subscriptions at any
+        time in{' '}
+        <a
+          href="https://apps.apple.com/account/subscriptions"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Settings &rarr; Apple ID &rarr; Subscriptions
+        </a>
+        . Cancellation takes effect at the end of the current billing period;
+        partial-period refunds are governed by Apple&rsquo;s policies.
+      </p>
+      <p>
+        <strong>Lifetime.</strong> The lifetime plan is a one-time,
+        non-consumable purchase. There is no recurring charge. It is tied to
+        your Apple ID and restores automatically on devices signed in with
+        that Apple ID.
       </p>
       <p>
         <strong>Refunds.</strong> All refunds are handled by Apple according

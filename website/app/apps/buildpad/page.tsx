@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'BuildPad',
   description:
-    'Every TestFlight build across all your apps, in one view. Sort by expiry, see review status, copy public links. One-time $2.99 unlock.',
+    'Every TestFlight build across all your apps, in one view. Sort by expiry, see review status, copy public links. Monthly, yearly, or lifetime.',
   openGraph: {
     title: 'BuildPad · ND Software',
     description:
@@ -79,25 +79,48 @@ export default function BuildPadPage() {
         </div>
       </section>
 
-      <section className="mb-16 p-8 sm:p-10 rounded-2xl bg-[var(--color-card)] border border-[var(--color-border)]">
-        <div className="text-xs font-medium text-[var(--color-brand)] uppercase tracking-wider">
-          One-time purchase
+      <section className="mb-16">
+        <div className="mb-6">
+          <div className="text-xs font-medium text-[var(--color-brand)] uppercase tracking-wider">
+            BuildPad Pro
+          </div>
+          <h2 className="mt-2 text-3xl sm:text-4xl font-bold">
+            Pick the plan that fits.
+          </h2>
         </div>
-        <h2 className="mt-2 text-3xl sm:text-4xl font-bold">
-          Unlock everything for $2.99
-        </h2>
-        <p className="mt-4 text-[var(--color-text-dim)] leading-relaxed max-w-xl">
-          No subscription. No monthly fee. One-time purchase, restores across
-          every device signed in with your Apple ID.
-        </p>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <PriceCard
+            tier="Monthly"
+            price="$2.99"
+            period="/ month"
+            blurb="Flexible. Cancel anytime."
+          />
+          <PriceCard
+            tier="Yearly"
+            price="$19.99"
+            period="/ year"
+            blurb="Save 44% vs. monthly."
+            highlight="Best value"
+          />
+          <PriceCard
+            tier="Lifetime"
+            price="$49.99"
+            period="one-time"
+            blurb="Pay once. Yours forever."
+            highlight="No subscription"
+          />
+        </div>
+
         <a
           href="#"
-          className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[var(--color-brand)] text-white font-semibold hover:opacity-90 transition"
+          className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[var(--color-brand)] text-white font-semibold hover:opacity-90 transition"
         >
           Download on the App Store
         </a>
         <p className="mt-4 text-xs text-[var(--color-text-dim)]">
           Free tier shows one app — no purchase required to try it out.
+          Subscriptions auto-renew until cancelled in your Apple ID settings.
         </p>
       </section>
 
@@ -136,6 +159,46 @@ export default function BuildPadPage() {
           </p>
         </div>
       </section>
+    </div>
+  );
+}
+
+function PriceCard({
+  tier,
+  price,
+  period,
+  blurb,
+  highlight,
+}: {
+  tier: string;
+  price: string;
+  period: string;
+  blurb: string;
+  highlight?: string;
+}) {
+  return (
+    <div
+      className={`relative p-6 rounded-xl border ${
+        highlight === 'Best value'
+          ? 'bg-[var(--color-card)] border-[var(--color-brand)]'
+          : 'bg-[var(--color-card)] border-[var(--color-border)]'
+      }`}
+    >
+      {highlight ? (
+        <div className="absolute -top-2 left-4 px-2 py-0.5 rounded-full bg-[var(--color-brand)] text-white text-[10px] font-bold uppercase tracking-wider">
+          {highlight}
+        </div>
+      ) : null}
+      <div className="text-sm font-semibold text-[var(--color-text-dim)]">
+        {tier}
+      </div>
+      <div className="mt-2 flex items-baseline gap-1">
+        <span className="text-3xl font-bold text-[var(--color-text)]">
+          {price}
+        </span>
+        <span className="text-sm text-[var(--color-text-dim)]">{period}</span>
+      </div>
+      <p className="mt-3 text-sm text-[var(--color-text-dim)]">{blurb}</p>
     </div>
   );
 }

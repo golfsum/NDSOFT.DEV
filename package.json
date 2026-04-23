@@ -34,6 +34,7 @@
   "devDependencies": {
     "@types/jsrsasign": "^10.5.15",
     "@types/react": "~19.1.10",
+    "sharp": "^0.34.5",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   }

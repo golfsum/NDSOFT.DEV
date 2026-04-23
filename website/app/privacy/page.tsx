@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     'Privacy policy for ND Software LLC and its apps, including BuildPad.',
 };
 
-const EFFECTIVE_DATE = 'April 22, 2026';
+const EFFECTIVE_DATE = 'April 23, 2026';
 
 export default function PrivacyPage() {
   return (

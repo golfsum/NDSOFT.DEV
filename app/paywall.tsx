@@ -1,19 +1,36 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fetchUnlimitedProduct, purchaseUnlimited, restorePurchases, type ProductInfo } from '@/iap/storekit';
+import {
+  fetchAllProducts,
+  purchasePlan,
+  restorePurchases,
+  type PlanTier,
+  type ProductInfo,
+} from '@/iap/storekit';
 import { theme } from '@/theme';
 
+type ProductsMap = Record<PlanTier, ProductInfo | null>;
+
+const FALLBACK_PRICES: Record<PlanTier, string> = {
+  monthly: '$2.99',
+  yearly: '$19.99',
+  lifetime: '$49.99',
+};
+
+const PLAN_ORDER: PlanTier[] = ['monthly', 'yearly', 'lifetime'];
+
 export default function PaywallScreen() {
-  const [product, setProduct] = useState<ProductInfo | null>(null);
+  const [products, setProducts] = useState<ProductsMap | null>(null);
+  const [selected, setSelected] = useState<PlanTier>('yearly');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetchUnlimitedProduct().then((p) => {
-      if (!cancelled) setProduct(p);
+    fetchAllProducts().then((p) => {
+      if (!cancelled) setProducts(p);
     });
     return () => {
       cancelled = true;
@@ -23,10 +40,8 @@ export default function PaywallScreen() {
   const handleBuy = async () => {
     setBusy(true);
     try {
-      const ok = await purchaseUnlimited();
-      if (ok) {
-        router.back();
-      }
+      const ok = await purchasePlan(selected);
+      if (ok) router.back();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Purchase failed.';
       Alert.alert('Purchase', msg);
@@ -42,7 +57,10 @@ export default function PaywallScreen() {
       if (ok) {
         router.back();
       } else {
-        Alert.alert('Restore Purchases', 'No prior purchase was found on this Apple ID.');
+        Alert.alert(
+          'Restore Purchases',
+          'No active BuildPad Pro subscription or purchase was found on this Apple ID.',
+        );
       }
     } finally {
       setBusy(false);
@@ -61,43 +79,53 @@ export default function PaywallScreen() {
         <Ionicons name="close" size={22} color={theme.color.text} />
       </Pressable>
 
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Ionicons name="rocket" size={44} color={theme.color.brand} />
         </View>
-        <Text style={styles.title}>Track all your apps</Text>
+        <Text style={styles.title}>BuildPad Pro</Text>
         <Text style={styles.subtitle}>
-          See every TestFlight build across your whole portfolio.
+          Track every TestFlight build across every app. Pick the plan that
+          fits.
         </Text>
 
         <View style={styles.bullets}>
-          <Bullet text="Live build status and expiry countdowns" />
-          <Bullet text="Tester counts across every app" />
-          <Bullet text="Processing state the moment a build uploads" />
+          <Bullet text="Unlimited apps in Global Dashboard" />
+          <Bullet text="Live build status, expiry, and review badges" />
+          <Bullet text="Public-link quick-share & auto-promote" />
+          <Bullet text="Reply to App Store reviews in one tap" />
         </View>
 
-        <View style={styles.priceBox}>
-          <Text style={styles.priceLabel}>Unlimited Apps</Text>
-          <Text style={styles.priceValue}>
-            {product?.priceLabel ?? '$2.99'}
-          </Text>
-          <Text style={styles.priceHint}>One-time purchase · No subscription</Text>
+        <View style={styles.plans}>
+          {PLAN_ORDER.map((tier) => (
+            <PlanCard
+              key={tier}
+              tier={tier}
+              product={products?.[tier] ?? null}
+              selected={selected === tier}
+              onSelect={() => setSelected(tier)}
+            />
+          ))}
         </View>
 
         <Pressable
           onPress={handleBuy}
           disabled={busy}
           accessibilityRole="button"
-          accessibilityLabel="Buy unlimited apps"
+          accessibilityLabel={`Continue with ${labelFor(selected)}`}
           style={({ pressed }) => [
             styles.buyButton,
             (pressed || busy) && { opacity: 0.7 },
           ]}
         >
           <Text style={styles.buyButtonText}>
-            {busy ? 'Please wait…' : `Unlock${product ? ` for ${product.priceLabel}` : ''}`}
+            {busy ? 'Please wait…' : `Continue · ${priceFor(selected, products)}`}
           </Text>
         </Pressable>
+
+        <Text style={styles.legal}>
+          {legalFor(selected, products)}
+        </Text>
 
         <Pressable
           onPress={handleRestore}
@@ -107,8 +135,60 @@ export default function PaywallScreen() {
         >
           <Text style={styles.restoreText}>Restore Purchases</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function PlanCard({
+  tier,
+  product,
+  selected,
+  onSelect,
+}: {
+  tier: PlanTier;
+  product: ProductInfo | null;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const price = product?.priceLabel ?? FALLBACK_PRICES[tier];
+  const label = labelFor(tier);
+  const period = periodFor(tier);
+  const badge = badgeFor(tier);
+
+  return (
+    <Pressable
+      onPress={onSelect}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${label}, ${price} ${period ?? ''}`}
+      style={[styles.planCard, selected && styles.planCardSelected]}
+    >
+      {badge ? (
+        <View style={styles.planBadge}>
+          <Text style={styles.planBadgeText}>{badge}</Text>
+        </View>
+      ) : null}
+      <View style={styles.planHeader}>
+        <View
+          style={[styles.radio, selected && styles.radioSelected]}
+        >
+          {selected ? (
+            <Ionicons name="checkmark" size={14} color="#fff" />
+          ) : null}
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.planLabel}>{label}</Text>
+          {period ? <Text style={styles.planPeriod}>{period}</Text> : null}
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={styles.planPrice}>{price}</Text>
+          {tier === 'yearly' ? (
+            <Text style={styles.planSaving}>Save 44%</Text>
+          ) : null}
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -121,6 +201,39 @@ function Bullet({ text }: { text: string }) {
   );
 }
 
+function labelFor(tier: PlanTier): string {
+  if (tier === 'monthly') return 'Monthly';
+  if (tier === 'yearly') return 'Yearly';
+  return 'Lifetime';
+}
+
+function periodFor(tier: PlanTier): string | null {
+  if (tier === 'monthly') return 'Billed every month · Cancel anytime';
+  if (tier === 'yearly') return 'Billed once a year';
+  return 'One-time · Yours forever';
+}
+
+function badgeFor(tier: PlanTier): string | null {
+  if (tier === 'yearly') return 'Best value';
+  if (tier === 'lifetime') return 'No subscription';
+  return null;
+}
+
+function priceFor(tier: PlanTier, products: ProductsMap | null): string {
+  return products?.[tier]?.priceLabel ?? FALLBACK_PRICES[tier];
+}
+
+function legalFor(tier: PlanTier, products: ProductsMap | null): string {
+  const price = priceFor(tier, products);
+  if (tier === 'lifetime') {
+    return `One-time ${price} via your Apple ID. Restores on every device signed in with this ID.`;
+  }
+  if (tier === 'monthly') {
+    return `${price} / month. Auto-renews unless cancelled at least 24 hours before the end of the period. Manage in Settings.`;
+  }
+  return `${price} / year. Auto-renews unless cancelled at least 24 hours before the end of the period. Manage in Settings.`;
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.color.bg },
   closeButton: {
@@ -131,10 +244,9 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   content: {
-    flex: 1,
     paddingHorizontal: theme.space.xl,
     paddingTop: 60,
-    paddingBottom: theme.space.xl,
+    paddingBottom: theme.space.xl * 2,
   },
   hero: {
     width: 80,
@@ -144,7 +256,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
-    marginBottom: theme.space.xl,
+    marginBottom: theme.space.lg,
   },
   title: {
     color: theme.color.text,
@@ -154,14 +266,15 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: theme.color.textDim,
-    fontSize: theme.font.lg,
+    fontSize: theme.font.md,
     textAlign: 'center',
     marginTop: theme.space.sm,
-    lineHeight: 24,
+    lineHeight: 22,
+    paddingHorizontal: theme.space.md,
   },
   bullets: {
-    marginTop: theme.space.xl,
-    gap: theme.space.md,
+    marginTop: theme.space.lg,
+    gap: theme.space.sm,
   },
   bulletRow: {
     flexDirection: 'row',
@@ -173,31 +286,75 @@ const styles = StyleSheet.create({
     fontSize: theme.font.md,
     flex: 1,
   },
-  priceBox: {
+  plans: {
     marginTop: theme.space.xl,
+    gap: theme.space.sm,
+  },
+  planCard: {
     padding: theme.space.lg,
     backgroundColor: theme.color.card,
     borderRadius: theme.radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1.5,
+    borderColor: theme.color.border,
+    position: 'relative',
+  },
+  planCardSelected: {
+    borderColor: theme.color.brand,
+    backgroundColor: 'rgba(10,132,255,0.08)',
+  },
+  planBadge: {
+    position: 'absolute',
+    top: -9,
+    right: 14,
+    backgroundColor: theme.color.brand,
+    paddingHorizontal: theme.space.sm,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  planBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  planHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.space.md,
+  },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
     borderColor: theme.color.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  priceLabel: {
-    color: theme.color.textDim,
-    fontSize: theme.font.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  radioSelected: {
+    backgroundColor: theme.color.brand,
+    borderColor: theme.color.brand,
   },
-  priceValue: {
+  planLabel: {
     color: theme.color.text,
-    fontSize: 36,
-    fontWeight: '800',
-    marginTop: 4,
+    fontSize: theme.font.md,
+    fontWeight: '700',
   },
-  priceHint: {
+  planPeriod: {
     color: theme.color.textDim,
-    fontSize: theme.font.sm,
-    marginTop: 4,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  planPrice: {
+    color: theme.color.text,
+    fontSize: theme.font.lg,
+    fontWeight: '700',
+  },
+  planSaving: {
+    color: theme.color.accent,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
   buyButton: {
     marginTop: theme.space.xl,
@@ -211,8 +368,16 @@ const styles = StyleSheet.create({
     fontSize: theme.font.lg,
     fontWeight: '700',
   },
-  restoreButton: {
+  legal: {
+    color: theme.color.textDim,
+    fontSize: 11,
+    textAlign: 'center',
     marginTop: theme.space.md,
+    lineHeight: 16,
+    paddingHorizontal: theme.space.sm,
+  },
+  restoreButton: {
+    marginTop: theme.space.sm,
     alignItems: 'center',
     padding: theme.space.sm,
   },
