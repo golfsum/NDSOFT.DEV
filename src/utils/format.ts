@@ -56,3 +56,19 @@ export function uploadedText(uploadedAt: Date, now: Date = new Date()): string {
 export function absoluteDate(d: Date): string {
   return format(d, "MMM d, yyyy 'at' h:mm a");
 }
+
+/**
+ * Human label for a build. When the marketing version is missing
+ * (preReleaseVersion relationship absent or resolving to null), fall
+ * back to "Build (N)" instead of "v— (N)".
+ *
+ *   version = "1.0.3", buildNumber = "42" → "v1.0.3 (42)"
+ *   version = "—",     buildNumber = "42" → "Build (42)"
+ */
+export function buildLabel(version: string, buildNumber: string): { prefix: string; suffix: string } {
+  const hasMarketing = version && version !== '—';
+  if (hasMarketing) {
+    return { prefix: `v${version}`, suffix: `(${buildNumber})` };
+  }
+  return { prefix: 'Build', suffix: `(${buildNumber})` };
+}

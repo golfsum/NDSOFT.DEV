@@ -51,7 +51,7 @@ export default function DashboardScreen() {
       <SafeAreaView style={styles.safe} edges={['bottom']}>
         <Stack.Screen
           options={{
-            headerRight: () => <GearButton />,
+            headerRight: () => <HeaderActions />,
           }}
         />
         <View style={styles.content}>
@@ -64,7 +64,7 @@ export default function DashboardScreen() {
   if (!hasCreds) {
     return (
       <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <Stack.Screen options={{ headerRight: () => <GearButton /> }} />
+        <Stack.Screen options={{ headerRight: () => <HeaderActions /> }} />
         <EmptyState
           icon="key-outline"
           title="Connect your account"
@@ -78,7 +78,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <Stack.Screen options={{ headerRight: () => <GearButton /> }} />
+      <Stack.Screen options={{ headerRight: () => <HeaderActions /> }} />
       <View style={styles.content}>
         {err ? <ErrorBanner error={err} /> : null}
 
@@ -110,17 +110,28 @@ export default function DashboardScreen() {
   );
 }
 
-function GearButton() {
+function HeaderActions() {
   return (
-    <Pressable
-      onPress={() => router.push('/settings')}
-      accessibilityLabel="Open settings"
-      accessibilityRole="button"
-      hitSlop={12}
-      style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, paddingHorizontal: 8 })}
-    >
-      <Ionicons name="settings-outline" size={22} color={theme.color.text} />
-    </Pressable>
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <Pressable
+        onPress={() => router.push('/dashboard')}
+        accessibilityLabel="Open global dashboard"
+        accessibilityRole="button"
+        hitSlop={12}
+        style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, paddingHorizontal: 8 })}
+      >
+        <Ionicons name="grid-outline" size={22} color={theme.color.text} />
+      </Pressable>
+      <Pressable
+        onPress={() => router.push('/settings')}
+        accessibilityLabel="Open settings"
+        accessibilityRole="button"
+        hitSlop={12}
+        style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, paddingHorizontal: 8 })}
+      >
+        <Ionicons name="settings-outline" size={22} color={theme.color.text} />
+      </Pressable>
+    </View>
   );
 }
 

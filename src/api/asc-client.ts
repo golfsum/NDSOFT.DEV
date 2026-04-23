@@ -17,8 +17,12 @@ export class AscApiError extends Error {
   }
 }
 
+type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+
 interface FetchOptions {
   signal?: AbortSignal;
+  method?: HttpMethod;
+  body?: unknown;
   /** When true, the caller is the retry step — don't retry recursively. */
   isRetry?: boolean;
 }
@@ -30,6 +34,7 @@ interface FetchOptions {
  *  - 403 → throw with FORBIDDEN code (UI shows "API key lacks permission")
  *  - 429 → parse Retry-After, throw with RATE_LIMITED
  *  - network errors → throw with NETWORK
+ *  - Non-GET methods return `undefined` on 204, otherwise parsed JSON.
  */
 async function ascFetch<T>(
   creds: AscCredentials,
@@ -38,15 +43,22 @@ async function ascFetch<T>(
 ): Promise<T> {
   const url = pathOrUrl.startsWith('http') ? pathOrUrl : `${BASE_URL}${pathOrUrl}`;
   const token = getASCToken(creds);
+  const method: HttpMethod = opts.method ?? 'GET';
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/json',
+  };
+  if (opts.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   let res: Response;
   try {
     res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
+      method,
+      headers,
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
       signal: opts.signal,
     });
   } catch (e) {
@@ -87,8 +99,12 @@ async function ascFetch<T>(
     throw new AscApiError(`ASC request failed (${res.status}) ${detail}`, res.status, 'HTTP');
   }
 
+  if (res.status === 204) return undefined as T;
+
   try {
-    return (await res.json()) as T;
+    const text = await res.text();
+    if (!text) return undefined as T;
+    return JSON.parse(text) as T;
   } catch {
     throw new AscApiError('Could not parse ASC response.', 0, 'PARSE');
   }
@@ -128,7 +144,14 @@ export async function ascFetchAll<D, I = unknown>(
 }
 
 export const ascClient = {
-  get: ascFetch,
+  get: <T>(creds: AscCredentials, pathOrUrl: string, opts?: { signal?: AbortSignal }) =>
+    ascFetch<T>(creds, pathOrUrl, { signal: opts?.signal }),
+  post: <T>(creds: AscCredentials, path: string, body: unknown, opts?: { signal?: AbortSignal }) =>
+    ascFetch<T>(creds, path, { method: 'POST', body, signal: opts?.signal }),
+  patch: <T>(creds: AscCredentials, path: string, body: unknown, opts?: { signal?: AbortSignal }) =>
+    ascFetch<T>(creds, path, { method: 'PATCH', body, signal: opts?.signal }),
+  delete: <T = void>(creds: AscCredentials, path: string, opts?: { signal?: AbortSignal }) =>
+    ascFetch<T>(creds, path, { method: 'DELETE', signal: opts?.signal }),
   getAll: ascFetchAll,
   BASE_URL,
 };

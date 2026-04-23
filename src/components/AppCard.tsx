@@ -5,6 +5,8 @@ import { theme } from '../theme';
 import type { AppSummary } from '../api/types';
 import { ExpiryBadge } from './ExpiryBadge';
 import { ProcessingPill } from './ProcessingPill';
+import { ReviewStatusBadge } from './ReviewStatusBadge';
+import { buildLabel } from '../utils/format';
 
 interface Props {
   app: AppSummary;
@@ -56,16 +58,25 @@ export function AppCard({ app, locked, onPress }: Props) {
       </View>
 
       {latestBuild ? (
-        <View style={styles.buildRow}>
-          <Text style={styles.version} numberOfLines={1}>
-            v{latestBuild.version}{' '}
-            <Text style={styles.buildNumber}>({latestBuild.buildNumber})</Text>
-          </Text>
-          <ExpiryBadge
-            expiresAt={latestBuild.expiresAt}
-            expired={latestBuild.expired}
-          />
-        </View>
+        <>
+          <View style={styles.buildRow}>
+            <Text style={styles.version} numberOfLines={1}>
+              {buildLabel(latestBuild.version, latestBuild.buildNumber).prefix}{' '}
+              <Text style={styles.buildNumber}>
+                {buildLabel(latestBuild.version, latestBuild.buildNumber).suffix}
+              </Text>
+            </Text>
+            <ExpiryBadge
+              expiresAt={latestBuild.expiresAt}
+              expired={latestBuild.expired}
+            />
+          </View>
+          {latestBuild.betaReviewState ? (
+            <View style={{ marginTop: theme.space.sm }}>
+              <ReviewStatusBadge state={latestBuild.betaReviewState} />
+            </View>
+          ) : null}
+        </>
       ) : (
         <Text style={styles.noBuild}>No builds uploaded yet</Text>
       )}

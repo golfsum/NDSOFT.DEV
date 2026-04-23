@@ -42,6 +42,7 @@ export interface AscRawBuild {
   relationships?: {
     preReleaseVersion?: { data?: AscRelationshipRef | null };
     app?: { data?: AscRelationshipRef | null };
+    betaAppReviewSubmission?: { data?: AscRelationshipRef | null };
   };
 }
 
@@ -65,6 +66,97 @@ export interface AscRawReview {
     createdDate?: string;
     territory?: string;
   };
+  relationships?: {
+    response?: { data?: AscRelationshipRef | null };
+  };
+}
+
+export type AscReviewResponseState = 'PUBLISHED' | 'PENDING_PUBLISH';
+
+export interface AscRawReviewResponse {
+  id: string;
+  type: 'customerReviewResponses';
+  attributes: {
+    responseBody?: string;
+    lastModifiedDate?: string;
+    state?: AscReviewResponseState;
+  };
+  relationships?: {
+    review?: { data?: AscRelationshipRef | null };
+  };
+}
+
+/** Beta App Review submission lifecycle for external testing. */
+export type AscBetaReviewState =
+  | 'WAITING_FOR_REVIEW'
+  | 'IN_REVIEW'
+  | 'APPROVED'
+  | 'REJECTED';
+
+export interface AscRawBetaAppReviewSubmission {
+  id: string;
+  type: 'betaAppReviewSubmissions';
+  attributes: {
+    betaReviewState?: AscBetaReviewState;
+  };
+  relationships?: {
+    build?: { data?: AscRelationshipRef | null };
+  };
+}
+
+export interface AscRawBetaGroup {
+  id: string;
+  type: 'betaGroups';
+  attributes: {
+    name?: string;
+    publicLinkEnabled?: boolean;
+    publicLink?: string | null;
+    publicLinkLimit?: number | null;
+    publicLinkLimitEnabled?: boolean;
+    isInternalGroup?: boolean;
+  };
+  relationships?: {
+    app?: { data?: AscRelationshipRef | null };
+  };
+}
+
+export interface AscRawBetaFeedbackCrash {
+  id: string;
+  type: 'betaFeedbackCrashSubmissions';
+  attributes: {
+    createdDate?: string;
+  };
+  relationships?: {
+    build?: { data?: AscRelationshipRef | null };
+  };
+}
+
+export interface AscRawBetaFeedbackScreenshot {
+  id: string;
+  type: 'betaFeedbackScreenshotSubmissions';
+  attributes: {
+    createdDate?: string;
+    comment?: string;
+  };
+  relationships?: {
+    build?: { data?: AscRelationshipRef | null };
+  };
+}
+
+/** Raw shape of a single metric from the Power & Performance Metrics API. */
+export interface AscRawPerfMetric {
+  id: string;
+  type: 'perfPowerMetrics';
+  attributes: {
+    metricCategory?: string;
+    productData?: Array<{
+      dataPoints?: Array<{
+        percentile?: string;
+        value?: number;
+      }>;
+      percentilesOfInterest?: string[];
+    }>;
+  };
 }
 
 export interface AscListResponse<T, I = unknown> {
@@ -83,6 +175,8 @@ export interface AscSingleResponse<T, I = unknown> {
 
 export type ProcessingState = 'PROCESSING' | 'FAILED' | 'INVALID' | 'VALID';
 
+export type BetaReviewState = AscBetaReviewState;
+
 export interface AppSummary {
   id: string;
   name: string;
@@ -93,6 +187,7 @@ export interface AppSummary {
 
 export interface BuildSummary {
   id: string;
+  appId?: string;
   version: string; // marketing version, e.g. "1.0.3"
   buildNumber: string; // CFBundleVersion, e.g. "42"
   uploadedAt: Date;
@@ -100,6 +195,8 @@ export interface BuildSummary {
   processingState: ProcessingState;
   expired: boolean;
   testerCount?: number; // lazy-loaded
+  /** External beta review state, if a submission exists for this build. */
+  betaReviewState?: BetaReviewState;
 }
 
 export interface ReviewSummary {
@@ -110,4 +207,26 @@ export interface ReviewSummary {
   nickname: string;
   territory: string;
   createdAt: Date;
+  /** Populated when the developer has already responded. */
+  response?: ReviewResponseSummary;
+}
+
+export interface ReviewResponseSummary {
+  id: string;
+  body: string;
+  lastModifiedAt: Date | null;
+  state: AscReviewResponseState;
+}
+
+export interface BetaGroupSummary {
+  id: string;
+  name: string;
+  isInternal: boolean;
+  publicLinkEnabled: boolean;
+  publicLink: string | null;
+}
+
+export interface BetaFeedbackCounts {
+  crashes: number;
+  screenshots: number;
 }

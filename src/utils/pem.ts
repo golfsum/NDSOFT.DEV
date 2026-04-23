@@ -21,6 +21,10 @@ export function normalizeP8(input: string): string {
   // Strip BOM and unify line endings.
   let s = input.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').trim();
 
+  // iOS smart-dashes substitution converts ---- into em/en dashes.
+  // Undo that so the BEGIN/END markers are findable again.
+  s = s.replace(/[\u2010-\u2015\u2212]/g, '-');
+
   // If headers exist, extract the body between them.
   const beginIdx = s.indexOf(BEGIN);
   const endIdx = s.indexOf(END);

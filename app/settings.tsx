@@ -238,6 +238,8 @@ function Field({
         ]}
         autoCorrect={false}
         spellCheck={false}
+        smartDashesType="no"
+        smartInsertDelete={false}
       />
     </View>
   );

@@ -5,11 +5,13 @@ import React, { useEffect, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useCredentialsStore } from '@/store/credentials';
+import { useAutoPromoteStore } from '@/store/autoPromote';
 import { bootstrapIap } from '@/iap/storekit';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
   const hydrateCreds = useCredentialsStore((s) => s.hydrate);
+  const hydrateAutoPromote = useAutoPromoteStore((s) => s.hydrate);
 
   const queryClient = useMemo(
     () =>
@@ -31,8 +33,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     hydrateCreds();
+    hydrateAutoPromote();
     bootstrapIap();
-  }, [hydrateCreds]);
+  }, [hydrateCreds, hydrateAutoPromote]);
 
   return (
     <SafeAreaProvider>
@@ -47,7 +50,9 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" options={{ title: 'Build Tracker' }} />
+          <Stack.Screen name="dashboard" options={{ title: 'Global Dashboard' }} />
           <Stack.Screen name="app/[appId]" options={{ title: '' }} />
+          <Stack.Screen name="reviews/[appId]" options={{ title: 'Reviews' }} />
           <Stack.Screen name="settings" options={{ title: 'Settings' }} />
           <Stack.Screen
             name="paywall"

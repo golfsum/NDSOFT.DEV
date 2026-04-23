@@ -1,4 +1,3 @@
-import * as ExpoIap from 'expo-iap';
 import { useEntitlementStore } from '../store/entitlement';
 
 export const UNLIMITED_PRODUCT_ID = 'com.ndsoft.testflighttracker.unlimited';
@@ -11,14 +10,36 @@ export interface ProductInfo {
 }
 
 /**
- * expo-iap's API surface has shifted across minor versions. We cast
- * once at the boundary so the rest of the module can do permissive
- * shape-matching without fighting TypeScript's narrowing.
+ * Load expo-iap lazily. The module throws at import time when its
+ * native counterpart is missing (e.g. running a JS bundle against a
+ * dev client that wasn't rebuilt after adding the package). Swallowing
+ * the error here lets the rest of the app render — paywall actions
+ * will simply report that purchases are unavailable.
+ *
+ * expo-iap's API surface has also shifted across minor versions, so we
+ * cast to `any` and let the call sites do permissive shape-matching.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const iap: any = ExpoIap;
+let iap: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  iap = require('expo-iap');
+} catch (e) {
+  const msg = e instanceof Error ? e.message : String(e);
+  console.warn(
+    '[storekit] expo-iap native module not available — in-app purchases disabled. ' +
+      'Rebuild the native app (`npx expo run:ios`) to enable. Detail:',
+    msg,
+  );
+}
+
+/** True when the native module is present. False => purchases are a no-op. */
+export function isIapAvailable(): boolean {
+  return iap != null;
+}
 
 async function ensureConnection(): Promise<void> {
+  if (!iap) return;
   // Most versions of expo-iap expose initConnection(). If already
   // connected, repeated calls are no-ops.
   if (typeof iap.initConnection === 'function') {
@@ -31,6 +52,7 @@ async function ensureConnection(): Promise<void> {
 }
 
 export async function fetchUnlimitedProduct(): Promise<ProductInfo | null> {
+  if (!iap) return null;
   await ensureConnection();
 
   // Try the modern name first, fall back to legacy.
@@ -63,6 +85,11 @@ export async function fetchUnlimitedProduct(): Promise<ProductInfo | null> {
 }
 
 export async function purchaseUnlimited(): Promise<boolean> {
+  if (!iap) {
+    throw new Error(
+      'In-app purchases are unavailable. Rebuild the app to enable purchases.',
+    );
+  }
   await ensureConnection();
   const purchaser =
     iap.requestPurchase ??
@@ -72,9 +99,31 @@ export async function purchaseUnlimited(): Promise<boolean> {
     throw new Error('In-app purchases are unavailable on this device.');
   }
 
-  // expo-iap accepts either { sku } or { skus } depending on version.
-  const args = { sku: UNLIMITED_PRODUCT_ID, skus: [UNLIMITED_PRODUCT_ID] };
-  const result = await purchaser(args);
+  // expo-iap v2.7+ requires a nested { request: { ios, android }, type }
+  // shape. Older versions accept a flat { sku, skus }. Try modern first,
+  // fall back to legacy if the modern shape throws.
+  const modernArgs = {
+    request: {
+      ios: { sku: UNLIMITED_PRODUCT_ID },
+      android: { skus: [UNLIMITED_PRODUCT_ID] },
+    },
+    type: 'inapp' as const,
+  };
+  const legacyArgs = { sku: UNLIMITED_PRODUCT_ID, skus: [UNLIMITED_PRODUCT_ID] };
+
+  let result: unknown;
+  try {
+    result = await purchaser(modernArgs);
+  } catch (e) {
+    // If the modern shape isn't accepted, retry with legacy. Any other
+    // error (e.g. user cancelled) is surfaced to the caller.
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/request|ios|android|shape|invalid/i.test(msg)) {
+      result = await purchaser(legacyArgs);
+    } else {
+      throw e;
+    }
+  }
 
   const entries: any[] = Array.isArray(result) ? result : [result];
   const success = entries.some(
@@ -89,6 +138,7 @@ export async function purchaseUnlimited(): Promise<boolean> {
 }
 
 export async function restorePurchases(): Promise<boolean> {
+  if (!iap) return false;
   await ensureConnection();
   const getter =
     iap.getAvailablePurchases ??
@@ -116,6 +166,7 @@ export async function restorePurchases(): Promise<boolean> {
  * "Interrupted Purchase" banners. Safe to call repeatedly.
  */
 async function finalizePendingTransactions(): Promise<void> {
+  if (!iap) return;
   try {
     if (typeof iap.finishTransaction === 'function') {
       const pending = typeof iap.getPendingPurchases === 'function'
