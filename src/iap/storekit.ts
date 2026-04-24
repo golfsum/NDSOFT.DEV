@@ -45,7 +45,7 @@ export interface ProductInfo {
 }
 
 /** Entitlement identifier — must match what you configure in RC dashboard. */
-export const PRO_ENTITLEMENT = 'Pro';
+export const PRO_ENTITLEMENT = 'BuildPad Pro';
 
 // -- Internals -------------------------------------------------------------
 
@@ -135,6 +135,16 @@ function defaultTitle(tier: PlanTier): string {
 function setUnlockedFromCustomerInfo(info: any): void {
   const active = info?.entitlements?.active ?? {};
   const unlocked = Boolean(active[PRO_ENTITLEMENT]);
+  if (__DEV__) {
+    console.log(
+      '[storekit] customerInfo update — active entitlements:',
+      Object.keys(active),
+      '| looking for:',
+      PRO_ENTITLEMENT,
+      '| unlocked =',
+      unlocked,
+    );
+  }
   useEntitlementStore.getState().setUnlocked(unlocked);
 }
 

@@ -20,7 +20,7 @@ import { ProcessingPill } from '@/components/ProcessingPill';
 import { ReviewStatusBadge } from '@/components/ReviewStatusBadge';
 import { useApps } from '@/hooks/useApps';
 import {
-  useBetaFeedbackCounts,
+  useAppFeedbackCounts,
   useBetaGroups,
   useCrashFreeRate,
 } from '@/hooks/useBetaData';
@@ -48,7 +48,7 @@ export default function AppDetailScreen() {
   const latest = buildsQuery.data?.[0];
   const testerCountQuery = useTesterCount(latest?.id);
   const groupsQuery = useBetaGroups(appId);
-  const feedbackQuery = useBetaFeedbackCounts(latest?.id);
+  const feedbackQuery = useAppFeedbackCounts(appId);
   const crashFreeQuery = useCrashFreeRate(latest?.id);
 
   // Run auto-promote logic in the background for this app.

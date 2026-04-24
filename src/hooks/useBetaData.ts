@@ -4,7 +4,10 @@ import {
   listBetaGroupsForApp,
   listBuildBetaGroups,
 } from '../api/endpoints/beta-groups';
-import { getBetaFeedbackCounts } from '../api/endpoints/beta-feedback';
+import {
+  getAppFeedbackCounts,
+  getBetaFeedbackCounts,
+} from '../api/endpoints/beta-feedback';
 import { getCrashFreeRate } from '../api/endpoints/metrics';
 import { useCredentialsStore } from '../store/credentials';
 import type { BetaFeedbackCounts, BetaGroupSummary } from '../api/types';
@@ -48,6 +51,19 @@ export function useBetaFeedbackCounts(buildId: string | undefined) {
     queryFn: async ({ signal }) => {
       if (!creds || !buildId) return { crashes: 0, screenshots: 0 };
       return getBetaFeedbackCounts(creds, buildId, signal);
+    },
+  });
+}
+
+export function useAppFeedbackCounts(appId: string | undefined) {
+  const creds = useCredentialsStore((s) => s.creds);
+  return useQuery<BetaFeedbackCounts>({
+    queryKey: ['appFeedback', appId, creds?.keyId ?? null],
+    enabled: !!creds && !!appId,
+    staleTime: FIVE_MIN,
+    queryFn: async ({ signal }) => {
+      if (!creds || !appId) return { crashes: 0, screenshots: 0 };
+      return getAppFeedbackCounts(creds, appId, signal);
     },
   });
 }

@@ -23,7 +23,7 @@ import { useCredentialsStore, type Credentials } from '@/store/credentials';
 import { useEntitlement } from '@/hooks/useEntitlement';
 import { useEntitlementStore } from '@/store/entitlement';
 import { theme } from '@/theme';
-import { looksLikeP8, normalizeP8 } from '@/utils/pem';
+import { extractKeyIdFromFilename, looksLikeP8, normalizeP8 } from '@/utils/pem';
 
 type TestStatus = 'idle' | 'testing' | 'ok' | 'fail';
 
@@ -119,6 +119,75 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleImportFromFile = async () => {
+    try {
+      // Lazy-require so the app still loads if the native module isn't in
+      // the binary (e.g. running an older dev client before rebuild).
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const DocumentPicker = require('expo-document-picker');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const FileSystem = require('expo-file-system');
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/x-pkcs8', 'application/octet-stream', '*/*'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+      if (result.canceled) return;
+
+      const asset = result.assets?.[0];
+      if (!asset) return;
+
+      const contents: string = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: 'utf8',
+      });
+
+      if (!looksLikeP8(contents)) {
+        Alert.alert(
+          'That doesn\u2019t look like a .p8 key',
+          'Pick the file App Store Connect gave you when you created the API key (named AuthKey_XXXXXXXXXX.p8).',
+        );
+        return;
+      }
+
+      setPrivateKeyPem(normalizeP8(contents));
+      const extractedKeyId = extractKeyIdFromFilename(asset.name);
+      if (extractedKeyId && !keyId) {
+        setKeyId(extractedKeyId);
+      }
+      setTestStatus('idle');
+      setTestError(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Could not read that file.';
+      Alert.alert('Import failed', msg);
+    }
+  };
+
+  const handlePasteP8 = async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const Clipboard = require('expo-clipboard');
+      const text: string = await Clipboard.getStringAsync();
+      if (!text) {
+        Alert.alert('Clipboard is empty');
+        return;
+      }
+      if (!looksLikeP8(text)) {
+        Alert.alert(
+          'Clipboard doesn\u2019t contain a .p8 key',
+          'Copy the full contents of your AuthKey_XXXXXXXXXX.p8 file (including BEGIN / END lines) and try again.',
+        );
+        return;
+      }
+      setPrivateKeyPem(normalizeP8(text));
+      setTestStatus('idle');
+      setTestError(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Could not read clipboard.';
+      Alert.alert('Paste failed', msg);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <KeyboardAvoidingView
@@ -131,6 +200,27 @@ export default function SettingsScreen() {
             Create a key with Developer role in App Store Connect → Users and Access → Integrations.
             All three values are stored only in your device Keychain.
           </Text>
+
+          <View style={styles.importRow}>
+            <Pressable
+              onPress={handleImportFromFile}
+              accessibilityRole="button"
+              accessibilityLabel="Import .p8 file"
+              style={({ pressed }) => [styles.importBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Ionicons name="document-outline" size={16} color={theme.color.brand} />
+              <Text style={styles.importBtnText}>Import .p8 File</Text>
+            </Pressable>
+            <Pressable
+              onPress={handlePasteP8}
+              accessibilityRole="button"
+              accessibilityLabel="Paste .p8 from clipboard"
+              style={({ pressed }) => [styles.importBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Ionicons name="clipboard-outline" size={16} color={theme.color.brand} />
+              <Text style={styles.importBtnText}>Paste .p8</Text>
+            </Pressable>
+          </View>
 
           <Field label="Issuer ID" value={issuerId} onChangeText={setIssuerId} placeholder="69a6de70-…" autoCapitalize="none" />
           <Field label="Key ID" value={keyId} onChangeText={setKeyId} placeholder="ABCDEF1234" autoCapitalize="characters" />
@@ -337,6 +427,29 @@ function LinkRow({ label, url }: { label: string; url: string }) {
 }
 
 const styles = StyleSheet.create({
+  importRow: {
+    flexDirection: 'row',
+    gap: theme.space.sm,
+    marginBottom: theme.space.md,
+  },
+  importBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.space.xs,
+    paddingVertical: theme.space.sm,
+    paddingHorizontal: theme.space.md,
+    borderRadius: theme.radius.md,
+    backgroundColor: 'rgba(10, 132, 255, 0.14)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(10, 132, 255, 0.3)',
+  },
+  importBtnText: {
+    color: theme.color.brand,
+    fontSize: theme.font.sm,
+    fontWeight: '600',
+  },
   devBox: {
     marginTop: theme.space.sm,
     padding: theme.space.md,

@@ -53,3 +53,14 @@ export function looksLikeP8(input: string): boolean {
   const normalized = normalizeP8(input);
   return normalized.includes(BEGIN) && normalized.includes(END) && normalized.length > 200;
 }
+
+/**
+ * App Store Connect exports .p8 files named `AuthKey_<KEY_ID>.p8` —
+ * e.g. `AuthKey_ABC123DEFG.p8`. If the filename follows that pattern,
+ * return the Key ID; otherwise null.
+ */
+export function extractKeyIdFromFilename(filename: string | undefined | null): string | null {
+  if (!filename) return null;
+  const match = filename.match(/AuthKey_([A-Z0-9]{6,20})\.p8$/i);
+  return match?.[1] ?? null;
+}
