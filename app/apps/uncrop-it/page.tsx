@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Uncrop It',
   description:
-    'Extend any photo beyond its edges with AI outpainting, reframe it for any social platform, and bring stills to life — all from your iPhone or iPad.',
+    'Extend any photo beyond its edges with AI outpainting and reframe it for any social platform, all from your iPhone or iPad.',
   openGraph: {
     title: 'Uncrop It · ND Software',
     description:
@@ -16,7 +16,7 @@ const features = [
   {
     icon: '🖼️',
     title: 'AI uncrop',
-    body: 'Pick any photo and Uncrop It extends the scene naturally past its original frame — photorealistic fill, seamless edges, no awkward borders.',
+    body: 'Pick any photo and Uncrop It extends the scene naturally past its original frame, with photorealistic fill, seamless edges, and no awkward borders.',
   },
   {
     icon: '📐',
@@ -24,14 +24,9 @@ const features = [
     body: 'One-tap export sizes for Instagram, TikTok, YouTube, X, Facebook, LinkedIn, Pinterest, and the App Store. Reframe a shot instead of cropping it.',
   },
   {
-    icon: '✨',
-    title: 'Bring stills to life',
-    body: 'Animate a portrait into a short, lifelike clip you can drop straight into a story or reel.',
-  },
-  {
     icon: '🎯',
     title: 'Pixel-perfect presets',
-    body: 'Stories, reels, thumbnails, channel art, covers, and app icons — every preset lands on the exact dimensions each platform expects.',
+    body: 'Stories, reels, thumbnails, channel art, covers, and app icons. Every preset lands on the exact dimensions each platform expects.',
   },
   {
     icon: '📲',
@@ -56,7 +51,7 @@ export default function UncropItPage() {
           Uncrop It
         </h1>
         <p className="mt-6 text-xl sm:text-2xl text-[var(--color-text-dim)] max-w-2xl leading-snug">
-          Extend any photo past its edges with AI — then reframe it to fit
+          Extend any photo past its edges with AI, then reframe it to fit
           anywhere.
         </p>
       </section>
@@ -91,7 +86,7 @@ export default function UncropItPage() {
             story or a square post.
           </li>
           <li>
-            Uncrop It extends and reframes the shot in seconds — save the result
+            Uncrop It extends and reframes the shot in seconds. Save the result
             straight back to your photo library.
           </li>
         </ol>
@@ -112,7 +107,7 @@ export default function UncropItPage() {
             and we&rsquo;ll let you know.
           </p>
           <span className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text-dim)] font-semibold cursor-not-allowed">
-            Download on the App Store — soon
+            Download on the App Store (soon)
           </span>
         </div>
       </section>
@@ -129,12 +124,19 @@ export default function UncropItPage() {
             to train AI models.
           </p>
           <p>
-            For the full details, see our{' '}
+            For the full details, see the Uncrop It{' '}
             <a
-              href="/privacy"
+              href="/apps/uncrop-it/privacy"
               className="text-[var(--color-brand)] hover:underline"
             >
               Privacy Policy
+            </a>{' '}
+            and{' '}
+            <a
+              href="/apps/uncrop-it/terms"
+              className="text-[var(--color-brand)] hover:underline"
+            >
+              Terms of Service
             </a>
             . Questions?{' '}
             <a

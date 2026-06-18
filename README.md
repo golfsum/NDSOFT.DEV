@@ -14,10 +14,12 @@ Open http://localhost:3000.
 
 ## Routes
 
-- `/` — ND Software landing
-- `/apps/uncrop-it` — Uncrop It app detail
-- `/privacy` — Privacy Policy
-- `/terms` — Terms of Service
+- `/`: ND Software landing
+- `/apps/uncrop-it`: Uncrop It app detail
+- `/apps/uncrop-it/privacy`: Uncrop It Privacy Policy
+- `/apps/uncrop-it/terms`: Uncrop It Terms of Service
+- `/privacy`: Privacy hub (links to each app's policy)
+- `/terms`: Terms hub (links to each app's terms)
 
 ## Deploying to Vercel
 
@@ -48,19 +50,27 @@ This site lives as a subfolder of the TestFlightTracker repo. Configure Vercel o
 ```
 website/
 ├── app/
-│   ├── layout.tsx              Root layout (header + footer + metadata)
-│   ├── page.tsx                Landing page
-│   ├── globals.css             Tailwind import + design tokens
-│   ├── apps/uncrop-it/page.tsx Uncrop It app page
-│   ├── privacy/page.tsx        Privacy Policy
-│   └── terms/page.tsx          Terms of Service
+│   ├── layout.tsx                      Root layout (header + footer + metadata)
+│   ├── page.tsx                        Landing page
+│   ├── globals.css                     Tailwind import + design tokens
+│   ├── apps/uncrop-it/page.tsx         Uncrop It app page
+│   ├── apps/uncrop-it/privacy/page.tsx Uncrop It Privacy Policy
+│   ├── apps/uncrop-it/terms/page.tsx   Uncrop It Terms of Service
+│   ├── privacy/page.tsx                Privacy hub (per-app links)
+│   └── terms/page.tsx                  Terms hub (per-app links)
 ├── components/
 │   ├── Header.tsx
 │   └── Footer.tsx
+├── lib/
+│   └── apps.ts                         App registry (drives home + legal hubs)
 ├── next.config.ts
 ├── package.json
 ├── postcss.config.mjs
 └── tsconfig.json
 ```
+
+Adding a new app: add an entry to `lib/apps.ts` and create
+`app/apps/<slug>/page.tsx`, `.../privacy/page.tsx`, and `.../terms/page.tsx`.
+It will then appear on the home page and in both legal hubs automatically.
 
 Design tokens (colors, fonts) live in `app/globals.css` under `@theme`.

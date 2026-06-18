@@ -9,7 +9,7 @@ export default function Home() {
           <span className="text-[var(--color-brand)]">refreshingly simple</span>.
         </h1>
         <p className="mt-8 text-lg text-[var(--color-text-dim)] max-w-2xl leading-relaxed">
-          ND Software designs focused apps for iPhone and iPad — starting with
+          ND Software designs focused apps for iPhone and iPad, starting with
           Uncrop It, which extends any photo beyond its edges with AI and
           reframes it to fit anywhere.
         </p>
@@ -32,7 +32,7 @@ export default function Home() {
                 <h3 className="mt-2 text-2xl font-bold">Uncrop It</h3>
                 <p className="mt-3 text-sm text-[var(--color-text-dim)] leading-relaxed">
                   Extend any photo beyond its borders with AI outpainting, then
-                  resize it to fit any social platform — no manual cropping.
+                  resize it to fit any social platform, with no manual cropping.
                 </p>
               </div>
             </div>
