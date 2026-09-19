@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "ND SOFT",
     short_name: "ND SOFT",
     description:
-      "Independent software studio behind AppsResolve, Tranqly, PawProof, and TeeLesson.",
+      "Independent software studio behind AppsResolve, StrideScore, PawProof, and TeeLesson.",
     start_url: "/",
     display: "standalone",
     background_color: "#0b0d12",
