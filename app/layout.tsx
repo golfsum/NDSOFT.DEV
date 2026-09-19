@@ -3,7 +3,7 @@ import "./globals.css";
 
 const title = "ND SOFT | Independent Software Studio";
 const description =
-  "ND SOFT is the independent studio behind AppsResolve, StrideScore, PawProof, and TeeLesson.";
+  "ND SOFT is the independent studio behind AppsResolve, StrideScore, PawProof, and ClientPlot.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://ndsoft.dev"),
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     "AppsResolve",
     "StrideScore",
     "PawProof",
-    "TeeLesson",
+    "ClientPlot",
     "independent software studio",
   ],
   openGraph: {
