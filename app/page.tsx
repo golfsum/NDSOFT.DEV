@@ -41,12 +41,13 @@ const products: Product[] = [
   },
   {
     number: "04",
-    name: "TeeLesson",
-    category: "Golf coaching",
+    name: "ClientPlot",
+    category: "Client management",
     description:
-      "A focused workspace for golf coaches to run students, lessons, practice, progress, and the business around every swing.",
-    destination: "TeeLesson app",
-    status: "In development",
+      "A simple client workspace for independent professionals to track clients, tasks, charges, notes, and follow-ups in one place.",
+    href: "https://clientplot.com",
+    destination: "clientplot.com",
+    status: "Live",
   },
 ];
 
@@ -59,7 +60,7 @@ const structuredData = {
       name: "ND SOFT LLC",
       url: "https://ndsoft.dev/",
       description:
-        "Independent software studio behind AppsResolve, StrideScore, PawProof, and TeeLesson.",
+        "Independent software studio behind AppsResolve, StrideScore, PawProof, and ClientPlot.",
     },
     {
       "@type": "ItemList",
@@ -113,7 +114,7 @@ export default function Home() {
             <strong>ND SOFT / 2026</strong>
             <p>
               Small, focused software built to make support, activity, pet
-              care, and coaching easier to manage.
+              care, and client work easier to manage.
             </p>
           </aside>
 
