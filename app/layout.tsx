@@ -3,7 +3,7 @@ import "./globals.css";
 
 const title = "ND SOFT | Independent Software Studio";
 const description =
-  "ND SOFT is the independent studio behind AppsResolve, Tranqly, PawProof, and TeeLesson.";
+  "ND SOFT is the independent studio behind AppsResolve, StrideScore, PawProof, and TeeLesson.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://ndsoft.dev"),
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   keywords: [
     "ND SOFT",
     "AppsResolve",
-    "Tranqly",
+    "StrideScore",
     "PawProof",
     "TeeLesson",
     "independent software studio",
