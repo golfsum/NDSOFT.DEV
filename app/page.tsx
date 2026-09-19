@@ -21,13 +21,13 @@ const products: Product[] = [
   },
   {
     number: "02",
-    name: "Tranqly",
-    category: "Daily reflection",
+    name: "StrideScore",
+    category: "Walking & activity",
     description:
-      "A one-minute daily reflection companion that remembers what matters and helps you notice patterns across your days.",
-    href: "https://tranqly.app",
-    destination: "tranqly.app",
-    status: "Current project",
+      "Turn walks into trackable sessions with steps, time, distance, routes, and progress designed to make moving more engaging.",
+    href: "https://stridescore.ndsoft.dev",
+    destination: "stridescore.ndsoft.dev",
+    status: "Available now",
   },
   {
     number: "03",
@@ -59,7 +59,7 @@ const structuredData = {
       name: "ND SOFT LLC",
       url: "https://ndsoft.dev/",
       description:
-        "Independent software studio behind AppsResolve, Tranqly, PawProof, and TeeLesson.",
+        "Independent software studio behind AppsResolve, StrideScore, PawProof, and TeeLesson.",
     },
     {
       "@type": "ItemList",
@@ -112,7 +112,7 @@ export default function Home() {
           <aside className="hero-note" aria-label="About ND SOFT">
             <strong>ND SOFT / 2026</strong>
             <p>
-              Small, focused software built to make support, reflection, pet
+              Small, focused software built to make support, activity, pet
               care, and coaching easier to manage.
             </p>
           </aside>
