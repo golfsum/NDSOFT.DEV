@@ -17,11 +17,16 @@ export default function StrideScorePage() {
           <p className="ss-kicker">Walking, scored.</p>
           <h1>Make every walk count.</h1>
           <p className="ss-lead">
-            Track focused walking sessions with steps, time, distance, and routes.
-            See your progress without turning movement into another complicated dashboard.
+            StrideScore turns walking into timed challenges, personal bests, achievements,
+            Apple Watch sessions, and exploration. Pick a time, start walking, and see what you can beat.
           </p>
           <div className="ss-actions">
-            <span className="ss-badge">StrideScore for iPhone</span>
+            <a
+              className="ss-badge"
+              href="mailto:StrideScore@ndsoft.dev?subject=StrideScore%20TestFlight%20Beta"
+            >
+              Join the TestFlight beta
+            </a>
             <a className="ss-link" href="mailto:StrideScore@ndsoft.dev">Contact support</a>
           </div>
         </section>
@@ -29,25 +34,27 @@ export default function StrideScorePage() {
         <section className="ss-grid" id="features" aria-label="StrideScore features">
           <article>
             <span>01</span>
-            <h2>Session tracking</h2>
-            <p>Start a walk and keep steps, elapsed time, distance, and activity together in one session.</p>
+            <h2>Timed challenges</h2>
+            <p>Choose a challenge length, track your steps, and try to beat your previous score.</p>
           </article>
           <article>
             <span>02</span>
-            <h2>Route view</h2>
-            <p>Use location when you want a visual route of where your session took you.</p>
+            <h2>Apple Watch + Live Activity</h2>
+            <p>Keep your timer and steps close by on Apple Watch and the iPhone Lock Screen.</p>
           </article>
           <article>
             <span>03</span>
-            <h2>Progress</h2>
-            <p>Keep a history of your walks so you can see how your activity builds over time.</p>
+            <h2>Explore and improve</h2>
+            <p>Track routes, earn achievements, build streaks, and watch your walking history grow.</p>
           </article>
         </section>
 
         <section className="ss-note">
-          <p>Built by ND SOFT</p>
-          <h2>Movement should feel rewarding, not complicated.</h2>
-          <a href="https://ndsoft.dev">Visit ND SOFT</a>
+          <p>StrideScore beta</p>
+          <h2>Help test the next version of walking challenges.</h2>
+          <a href="mailto:StrideScore@ndsoft.dev?subject=StrideScore%20TestFlight%20Beta">
+            Request TestFlight access
+          </a>
         </section>
       </main>
 
