@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export function proxy(request: NextRequest) {
   const host = request.headers.get("host")?.split(":")[0]?.toLowerCase();
 
-  if (host === "stridescore.ndsoft.dev") {
+  if (host === "stridescore.ndsoft.dev" && !request.nextUrl.pathname.startsWith("/stridescore/images/")) {
     const url = request.nextUrl.clone();
     const path = url.pathname === "/" ? "" : url.pathname;
     url.pathname = `/stridescore${path}`;
